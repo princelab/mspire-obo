@@ -16,34 +16,34 @@ module Mspire
         uri: "http://psidev.cvs.sourceforge.net/*checkout*/psidev/psi/psi-ms/mzML/controlledVocabulary/psi-ms.obo", 
         version: "3.29.0",
       },
-      ims: {
-        obo: ,
-        xml_id: ,
-        full_name: , 
-        uri: , 
-        version: ,
-      },
-      unit: {
-        obo: ,
-        xml_id: ,
-        full_name: , 
-        uri: , 
-        version: ,
-      },
-      psimod: {
-        obo: ,
-        xml_id: ,
-        full_name: , 
-        uri: , 
-        version: ,
-      },
-      unimod: {
-        obo: ,
-        xml_id: ,
-        full_name: , 
-        uri: , 
-        version: ,
-      },
+      #ims: {
+        #obo: ,
+        #xml_id: ,
+        #full_name: , 
+        #uri: , 
+        #version: ,
+      #},
+      #unit: {
+        #obo: ,
+        #xml_id: ,
+        #full_name: , 
+        #uri: , 
+        #version: ,
+      #},
+      #psimod: {
+        #obo: ,
+        #xml_id: ,
+        #full_name: , 
+        #uri: , 
+        #version: ,
+      #},
+      #unimod: {
+        #obo: ,
+        #xml_id: ,
+        #full_name: , 
+        #uri: , 
+        #version: ,
+      #},
     }
 
     DIR = File.expand_path(File.dirname(__FILE__) + '/../../obo')
