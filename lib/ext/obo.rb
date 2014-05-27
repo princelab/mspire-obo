@@ -1,6 +1,7 @@
 module Obo
   class Stanza
 
+    # returns :to_f, :to_i, :to_s or false based on the xref value.
     def cast_method
       xref = @tagvalues['xref'].first
       @cast_method = 
@@ -23,7 +24,8 @@ module Obo
     # returns the value cast based on rules in first xref
     # no casting performed if there is no xref
     def cast(val)
-      @cast_method ? val.send(@cast_method) : val
+      methd = cast_method
+      methd ? val.send(methd) : val
     end
   end
 end

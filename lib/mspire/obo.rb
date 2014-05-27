@@ -1,4 +1,8 @@
-require "mspire/obo/version"
+require 'mspire/obo/version'
+require 'mspire/obo/header_parser'
+require 'obo'
+require 'ext/obo'
+require 'andand'
 
 module Mspire
   # This is the major class representing an ontology.  Because there are
@@ -7,84 +11,84 @@ module Mspire
   #
   #     Mspire::Obo.new(file).build_all!
   class Obo
-    COMMON = %i(ms unit ims unimod mod)
-    INFO = {
-      ms: {
-        obo: 'ms.obo',
-        xml_id: 'MS',
-        full_name: "Proteomics Standards Initiative Mass Spectrometry Ontology", 
-        uri: "http://psidev.cvs.sourceforge.net/*checkout*/psidev/psi/psi-ms/mzML/controlledVocabulary/psi-ms.obo", 
-        version: "3.29.0",
-      },
-      #ims: {
-        #obo: ,
-        #xml_id: ,
-        #full_name: , 
-        #uri: , 
-        #version: ,
+
+#    COMMON = %i(ms unit ims unimod mod)
+    #INFO = {
+      #ms: {
+        #obo: 'ms.obo',
+        #xml_id: 'MS',
+        #full_name: "Proteomics Standards Initiative Mass Spectrometry Ontology", 
+        #uri: "http://psidev.cvs.sourceforge.net/*checkout*/psidev/psi/psi-ms/mzML/controlledVocabulary/psi-ms.obo", 
+        #version: "3.29.0",
       #},
-      #unit: {
-        #obo: ,
-        #xml_id: ,
-        #full_name: , 
-        #uri: , 
-        #version: ,
-      #},
-      #psimod: {
-        #obo: ,
-        #xml_id: ,
-        #full_name: , 
-        #uri: , 
-        #version: ,
-      #},
-      #unimod: {
-        #obo: ,
-        #xml_id: ,
-        #full_name: , 
-        #uri: , 
-        #version: ,
-      #},
-    }
+      ##ims: {
+        ##obo: ,
+        ##xml_id: ,
+        ##full_name: , 
+        ##uri: , 
+        ##version: ,
+      ##},
+      ##unit: {
+        ##obo: ,
+        ##xml_id: ,
+        ##full_name: , 
+        ##uri: , 
+        ##version: ,
+      ##},
+      ##psimod: {
+        ##obo: ,
+        ##xml_id: ,
+        ##full_name: , 
+        ##uri: , 
+        ##version: ,
+      ##},
+      ##unimod: {
+        ##obo: ,
+        ##xml_id: ,
+        ##full_name: , 
+        ##uri: , 
+        ##version: ,
+      ##},
+    #}
+
+
+    #class << self
+      ### looks up the appropriate object based on the leader and returns the
+      ### name.  For example, Mspire::Obo.name("UO:0000005") requires that
+      ### Mspire::Obo::UO be an Mspire::Obo object (or at least something that
+      ### can response to :name)
+      ##def name(id)
+        ##self.const_get( id.split(':',2).first.upcase ).name(id)
+      ##end
+
+      ### looks up the appropriate object based on the leader and returns a cast
+      ### symbol (e.g., :to_f) or casts the value passed in.  for example,
+      ### mspire::obo.cast("uo:0000005") requires that mspire::obo::uo be an
+      ### mspire::obo object (or at least something that can respond to :cast)
+      ##def cast(id, val=nil)
+        ##self.const_get( id.split(':',2).first.upcase ).cast(id, val)
+      ##end
+
+      ## returns an mspire::obo object with information, but that has not read
+      ## the obo file.
+      #def info(key)
+      #end
+
+      #def obo(key)
+      #end
+    #end
 
     DIR = File.expand_path(File.dirname(__FILE__) + '/../../obo')
-
-    class << self
-      ## looks up the appropriate object based on the leader and returns the
-      ## name.  For example, Mspire::Obo.name("UO:0000005") requires that
-      ## Mspire::Obo::UO be an Mspire::Obo object (or at least something that
-      ## can response to :name)
-      #def name(id)
-        #self.const_get( id.split(':',2).first.upcase ).name(id)
-      #end
-
-      ## looks up the appropriate object based on the leader and returns a cast
-      ## symbol (e.g., :to_f) or casts the value passed in.  For example,
-      ## Mspire::Obo.cast("UO:0000005") requires that Mspire::Obo::UO be an
-      ## Mspire::Obo object (or at least something that can respond to :cast)
-      #def cast(id, val=nil)
-        #self.const_get( id.split(':',2).first.upcase ).cast(id, val)
-      #end
-
-      # returns an Mspire::Obo object with information, but that has not read
-      # the obo file.
-      def info(key)
-      end
-
-      def obo(key)
-      end
-    end
 
     attr_accessor :header
     attr_accessor :stanzas
 
+    ## These are common attributes associated with typical usage of obo files
+    ## (e.g. see mzML spec)
+
     attr_accessor :uri
     attr_accessor :full_name
-    # the version of the document
     attr_accessor :version
-
-    # id to use within an xml document
-    attr_accessor :xml_id
-    alias_method :id=, :xml_id=
 
     # if given a filename, then the file will be read and relevant properties
     # will be set.
@@ -95,19 +99,37 @@ module Mspire
 
     # sets the object properties and returns self for chaining
     def from_file(filename)
-      obo = Obo::Parser.new(file)
+      obo = ::Obo::Parser.new(filename)
       @stanzas = obo.elements.to_a
       @header = @stanzas.shift
+      version_from_header!
       self
     end
 
-    # reads and sets the header from the filename
-    def read_header!(filename)
+    # sets the header attribut and returns self for chaining
+    def set_header_from_file!(filename)
+      @header = Mspire::Obo::HeaderParser.new.header(filename)
+      self
+    end
+
+    # sets the version attribute from the header, returns self.
+    def version_from_header!
+      @version = [header.tagvalues['data-version'].first, 
+       header.tagvalues['remark'].map {|str| str[/version\s*:\s*([^\s]+)/, 1] }.compact.first,
+       header['date'].andand.split(' ').first
+      ].compact.first
+      self
+    end
+
+    # sets the version by just reading the header of the file.  Returns self for
+    # chaining.
+    def set_version!(filename)
+      set_header_from_file!(filename).version_from_header!
     end
 
     # builds all hashes for fast access
     def build_all!
-      id_to_name!.id_to_cast!.name_to_id!
+      id_to_name!.id_to_cast!.name_to_id!.id_to_stanza!
     end
 
     # requires id_to_name! be called first
@@ -132,7 +154,8 @@ module Mspire
     end
 
     def id_to_cast
-      Hash[ id_to_stanza.map {|id,el| [id, el.cast_method] } ]
+      @id_to_stanza ||= id_to_stanza
+      Hash[ @id_to_stanza.map {|id,el| [id, el.cast_method] } ]
     end
 
     # requires id_to_cast! be called first.  If no val given, returns a symbol (e.g., :to_f).  If given a val, then it returns the cast of that val.
@@ -149,11 +172,6 @@ module Mspire
     # returns a name_to_id Hash
     def name_to_id
        build_hash('name', 'id')
-    end
-
-    # returns the id given a name.
-    def id(name)
-      @name_to_id[name]
     end
 
     # builds an internal id_to_stanza hash and returns self
@@ -175,7 +193,7 @@ module Mspire
     protected
     def build_hash(key,val)
       hash = {}
-      elements.each do |el| 
+      stanzas.each do |el| 
         tv = el.tagvalues
         if val.nil?
           hash[tv[key].first] = el

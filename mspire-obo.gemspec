@@ -20,6 +20,7 @@ Gem::Specification.new do |spec|
 
   [
     ["obo", ">= 0.1.5"],
+    ["andand", ">= 1.3.3"],
   ].each do |args|
     spec.add_dependency(*args)
   end
