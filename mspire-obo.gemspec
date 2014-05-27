@@ -6,10 +6,10 @@ require 'mspire/obo/version'
 Gem::Specification.new do |spec|
   spec.name          = "mspire-obo"
   spec.version       = Mspire::Obo::VERSION
-  spec.authors       = ["John Prince"]
+  spec.authors       = ["John T. Prince"]
   spec.email         = ["jtprince@gmail.com"]
-  spec.summary       = %q{TODO: Write a short summary. Required.}
-  spec.description   = %q{TODO: Write a longer description. Optional.}
+  spec.summary       = %q{simplified access for obo ontology files}
+  spec.description   = %q{simplified access for obo ontology files.  Builds hashes for quick lookup of terms and finds version, etc.}
   spec.homepage      = ""
   spec.license       = "MIT"
 

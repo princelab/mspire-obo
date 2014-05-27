@@ -3,7 +3,9 @@ require "mspire/obo/version"
 module Mspire
   # This is the major class representing an ontology.  Because there are
   # multiple ways to access the information, and fast access requires building
-  # a hash, you may need to 
+  # a hash, you will need to explicitly build any hashes you want to use.
+  #
+  #     Mspire::Obo.new(file).build_all!
   class Obo
     COMMON = %i(ms unit ims unimod mod)
     INFO = {
@@ -73,7 +75,7 @@ module Mspire
     end
 
     attr_accessor :header
-    attr_accessor :elements
+    attr_accessor :stanzas
 
     attr_accessor :uri
     attr_accessor :full_name
@@ -86,17 +88,26 @@ module Mspire
 
     # if given a filename, then the file will be read and relevant properties
     # will be set.
-    def initialize(filename=nil, uri: nil, full_name: nil, version: nil, xml_id: nil)
-      @uri, @full_name, @version, @xml_id = uri, full_name, version, xml_id
+    def initialize(filename=nil, uri: nil, full_name: nil, version: nil)
+      @uri, @full_name, @version, @xml_id = uri, full_name, version 
       from_file(filename) if filename
     end
 
     # sets the object properties and returns self for chaining
     def from_file(filename)
       obo = Obo::Parser.new(file)
-      @elements = obo.elements.to_a
-      @header = elements.shift
+      @stanzas = obo.elements.to_a
+      @header = @stanzas.shift
       self
+    end
+
+    # reads and sets the header from the filename
+    def read_header!(filename)
+    end
+
+    # builds all hashes for fast access
+    def build_all!
+      id_to_name!.id_to_cast!.name_to_id!
     end
 
     # requires id_to_name! be called first
@@ -121,7 +132,7 @@ module Mspire
     end
 
     def id_to_cast
-      Hash[ id_to_element.map {|id,el| [id, el.cast_method] } ]
+      Hash[ id_to_stanza.map {|id,el| [id, el.cast_method] } ]
     end
 
     # requires id_to_cast! be called first.  If no val given, returns a symbol (e.g., :to_f).  If given a val, then it returns the cast of that val.
@@ -132,6 +143,7 @@ module Mspire
     # builds the name_to_id hash and returns self for chaining
     def name_to_id!
       @name_to_id = name_to_id
+      self
     end
 
     # returns a name_to_id Hash
@@ -139,16 +151,9 @@ module Mspire
        build_hash('name', 'id')
     end
 
-    # returns the id given a name. If no argument given, then returns the
-    # xml_id
-    def id(name = nil)
-      name ? @name_to_id[name] : @xml_id
-    end
-
-    # builds the id_to_element hash and returns self
-    def id_to_element!
-      @id_to_element = id_to_element
-      self
+    # returns the id given a name.
+    def id(name)
+      @name_to_id[name]
     end
 
     # builds an internal id_to_stanza hash and returns self
@@ -166,7 +171,6 @@ module Mspire
     def stanza(id)
       @id_to_stanza[id]
     end
-    alias_method :element, :stanza
 
     protected
     def build_hash(key,val)
