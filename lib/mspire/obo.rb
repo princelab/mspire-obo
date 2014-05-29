@@ -3,82 +3,55 @@ require 'mspire/obo/header_parser'
 require 'obo'
 require 'ext/obo'
 require 'andand'
+require 'yaml'
 
 module Mspire
   # This is the major class representing an ontology.  Because there are
   # multiple ways to access the information, and fast access requires building
   # a hash, you will need to explicitly build any hashes you want to use.
   #
-  #     Mspire::Obo.new(file).build_all!
+  #     Mspire::Obo.new(file).make_all!
   class Obo
 
-#    COMMON = %i(ms unit ims unimod mod)
-    #INFO = {
-      #ms: {
-        #obo: 'ms.obo',
-        #xml_id: 'MS',
-        #full_name: "Proteomics Standards Initiative Mass Spectrometry Ontology", 
-        #uri: "http://psidev.cvs.sourceforge.net/*checkout*/psidev/psi/psi-ms/mzML/controlledVocabulary/psi-ms.obo", 
-        #version: "3.29.0",
-      #},
-      ##ims: {
-        ##obo: ,
-        ##xml_id: ,
-        ##full_name: , 
-        ##uri: , 
-        ##version: ,
-      ##},
-      ##unit: {
-        ##obo: ,
-        ##xml_id: ,
-        ##full_name: , 
-        ##uri: , 
-        ##version: ,
-      ##},
-      ##psimod: {
-        ##obo: ,
-        ##xml_id: ,
-        ##full_name: , 
-        ##uri: , 
-        ##version: ,
-      ##},
-      ##unimod: {
-        ##obo: ,
-        ##xml_id: ,
-        ##full_name: , 
-        ##uri: , 
-        ##version: ,
-      ##},
-    #}
-
-
-    #class << self
-      ### looks up the appropriate object based on the leader and returns the
-      ### name.  For example, Mspire::Obo.name("UO:0000005") requires that
-      ### Mspire::Obo::UO be an Mspire::Obo object (or at least something that
-      ### can response to :name)
-      ##def name(id)
-        ##self.const_get( id.split(':',2).first.upcase ).name(id)
-      ##end
-
-      ### looks up the appropriate object based on the leader and returns a cast
-      ### symbol (e.g., :to_f) or casts the value passed in.  for example,
-      ### mspire::obo.cast("uo:0000005") requires that mspire::obo::uo be an
-      ### mspire::obo object (or at least something that can respond to :cast)
-      ##def cast(id, val=nil)
-        ##self.const_get( id.split(':',2).first.upcase ).cast(id, val)
-      ##end
-
-      ## returns an mspire::obo object with information, but that has not read
-      ## the obo file.
-      #def info(key)
-      #end
-
-      #def obo(key)
-      #end
-    #end
-
     DIR = File.expand_path(File.dirname(__FILE__) + '/../../obo')
+
+    class << self
+      # returns an array of hashes with each hash describing the available
+      # obos (those in the Mspire::Obo::DIR directory) with these keys:
+      #
+      #     :full_name      # the generic name of the ontology
+      #     :url       # where the ontology may be downloaded
+      #     :namespace # namespace (String)
+      #     :path      # the expanded path filename
+      #     :version   # the ontology version (String)
+      #     :key       # access symbol [typically namespace.downcase.to_sym] (Symbol)
+      def available
+        obos = []
+        Dir.chdir(Mspire::Obo::DIR) do
+          Dir['*.*'].sort.each_slice(2) do |meta, obo|
+            hash = Hash[YAML.load_file(meta).map {|k,v| [k.to_sym, v] }]
+            hash[:path] = File.expand_path(obo)
+            hash[:version] = version(hash[:path])
+            hash[:key] = hash[:namespace].downcase.to_sym
+            obos << hash
+          end
+        end
+        obos
+      end
+
+      # determines the version of the obo by just reading the header
+      def version(filename)
+        self.new.set_version!(filename).version
+      end
+
+      # create an Mspire::Obo object from any obo file within the obo
+      # directory using its :key.  The key is the downcased symbol of the
+      # namespace and can effortlessly be determined with
+      # Mspire::Obo.available().
+      def [](key)
+      end
+    end
+
 
     attr_accessor :header
     attr_accessor :stanzas
@@ -89,6 +62,11 @@ module Mspire
     attr_accessor :uri
     attr_accessor :full_name
     attr_accessor :version
+
+    attr_reader :id_to_name
+    attr_reader :id_to_cast
+    attr_reader :id_to_stanza
+    attr_reader :name_to_id
 
     # if given a filename, then the file will be read and relevant properties
     # will be set.
@@ -128,8 +106,23 @@ module Mspire
     end
 
     # builds all hashes for fast access
-    def build_all!
+    def make_all!
       id_to_name!.id_to_cast!.name_to_id!.id_to_stanza!
+    end
+
+    ####################
+    ## ID TO CAST
+    ####################
+
+    # returns an id to name Hash
+    def make_id_to_name
+      build_hash('id', 'name')
+    end
+
+    # builds the id_to_name hash and returns self for chaining
+    def id_to_name!
+      @id_to_name = make_id_to_name
+      self
     end
 
     # requires id_to_name! be called first
@@ -137,25 +130,18 @@ module Mspire
       @id_to_name[id]
     end
 
-    # builds the hash and returns self for chaining
-    def id_to_name!
-      self
+    ####################
+    ## ID TO CAST
+    ####################
+
+    def make_id_to_cast
+      build_hash('id', :cast_method)
     end
 
-    # returns an id to name Hash
-    def id_to_name
-      build_hash('id', 'name')
-    end
-
-    # creates an id_to_cast 
+    # makes and sets the id_to_cast hash
     def id_to_cast!
-      @id_to_cast = id_to_cast
+      @id_to_cast = make_id_to_cast
       self
-    end
-
-    def id_to_cast
-      @id_to_stanza ||= id_to_stanza
-      Hash[ @id_to_stanza.map {|id,el| [id, el.cast_method] } ]
     end
 
     # requires id_to_cast! be called first.  If no val given, returns a symbol (e.g., :to_f).  If given a val, then it returns the cast of that val.
@@ -163,26 +149,19 @@ module Mspire
       val ? val.send(@id_to_cast[id]) : @id_to_cast[id]
     end
 
-    # builds the name_to_id hash and returns self for chaining
-    def name_to_id!
-      @name_to_id = name_to_id
-      self
-    end
-
-    # returns a name_to_id Hash
-    def name_to_id
-       build_hash('name', 'id')
-    end
-
-    # builds an internal id_to_stanza hash and returns self
-    def id_to_stanza!
-      @id_to_stanza = id_to_stanza
-      self
-    end
+    ####################
+    ## ID TO STANZA
+    ####################
 
     # returns an id_to_stanza hash
-    def id_to_stanza
+    def make_id_to_stanza
       build_hash('id', nil)
+    end
+
+    # makes and sets the id_to_stanza hash and returns self
+    def id_to_stanza!
+      @id_to_stanza = make_id_to_stanza
+      self
     end
 
     # returns an Obo::Stanza object
@@ -190,13 +169,33 @@ module Mspire
       @id_to_stanza[id]
     end
 
+    ####################
+    ## NAME TO ID
+    ####################
+
+    # makes and sets the name_to_id hash and returns self
+    def name_to_id!
+      @name_to_id = make_name_to_id
+      self
+    end
+
+    # returns a name_to_id Hash
+    def make_name_to_id
+       build_hash('name', 'id')
+    end
+
     protected
+
+    # if val is a symbol, will call that method on the stanza
     def build_hash(key,val)
       hash = {}
-      stanzas.each do |el| 
+      stanzas.each do |el|
         tv = el.tagvalues
-        if val.nil?
+        case val
+        when nil
           hash[tv[key].first] = el
+        when Symbol
+          hash[tv[key].first] = (el.send(val))
         else
           hash[tv[key].first] = tv[val].first
         end
