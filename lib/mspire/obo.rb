@@ -74,7 +74,8 @@ module Mspire
           load_file ? info[:path] : nil,
           uri: info[:uri], 
           full_name: info[:full_name], 
-          version: info[:version]
+          version: info[:version],
+          path: info[:path]
         )
       end
     end
@@ -86,9 +87,17 @@ module Mspire
     ## These are common attributes associated with typical usage of obo files
     ## (e.g. see mzML spec)
 
+    # the uri of the obo file (required for most markup languages using
+    # ontologies)
     attr_accessor :uri
+    # the English name of the ontology (e.g., "Proteomics Ontology") (required
+    # for most markup languages using ontologies)
     attr_accessor :full_name
+    # the version of the file.  This can be found dynamically if you have the
+    # file (required for most markup languages using ontologies)
     attr_accessor :version
+    # expanded path to the obo file (optional)
+    attr_accessor :path
 
     attr_reader :id_to_name
     attr_reader :id_to_cast
@@ -97,8 +106,8 @@ module Mspire
 
     # if given a filename, then the file will be read and relevant properties
     # will be set.
-    def initialize(filename=nil, uri: nil, full_name: nil, version: nil)
-      @uri, @full_name, @version, @xml_id = uri, full_name, version 
+    def initialize(filename=nil, uri: nil, full_name: nil, version: nil, path: nil)
+      @uri, @full_name, @version, @path = uri, full_name, version, path
       from_file(filename) if filename
     end
 
