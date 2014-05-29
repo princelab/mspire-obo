@@ -15,16 +15,32 @@ describe Mspire::Obo do
     specify '#version(filename) returns the version' do
       expect(Mspire::Obo.version(filename['psi-ms'])).to match(normal)
     end
+
     specify '#available returns an informative hash for each obo' do
       hashes = Mspire::Obo.available
-      hashes.each {|hash| expect(hash.keys.sort).to eq [:full_name, :url, :namespace, :path, :version, :key].sort }
+      hashes.each {|hash| expect(hash.keys.sort).to eq [:full_name, :uri, :namespace, :path, :version, :key].sort }
       ms_hash = hashes.find {|hash| hash[:namespace] == 'MS' }
       expect(ms_hash[:full_name].split(' ').first).to eq('Proteomics')
-      expect(ms_hash[:url]).to match(/psidev.*psi-ms.obo/)
+      expect(ms_hash[:uri]).to match(/psidev.*psi-ms.obo/)
       expect(ms_hash[:namespace]).to eq "MS"
       expect(ms_hash[:path]).to match(/.+obo\/psi-ms.obo/)
       expect(ms_hash[:version]).to match normal
       expect(ms_hash[:key]).to eq :ms
+    end
+
+    specify '#[symbol] loads an obo with a simple key symbol' do
+      obo = Mspire::Obo[:ms]
+      expect(obo.class).to eq Mspire::Obo
+      expect(obo.full_name.split(' ').first).to eq('Proteomics')
+      expect(obo.version).to match normal
+      expect(obo.uri).to match(/psidev.*psi-ms.obo/)
+      expect(obo.stanzas.size).to be > 2000
+    end
+    specify '#[symbol, false] loads an obo (no file loaded) with a simple key symbol' do
+      obo = Mspire::Obo[:ms, false]
+      expect(obo.class).to eq Mspire::Obo
+      expect(obo.version).to match normal
+      expect(obo.stanzas).to be nil
     end
   end
 
@@ -109,30 +125,4 @@ describe Mspire::Obo do
       end
     end
   end
-
 end
-
-
-
-
-#describe 'accessing a specific Obo::Ontology' do
-#it 'can access MS obo' do
-#Mspire::Obo::MS.id_to_name['MS:1000004'].should == 'sample mass'
-#Mspire::Obo::MS.name_to_id['sample mass'].should == 'MS:1000004'
-#Mspire::Obo::MS.id_to_element['MS:1000004'].should be_a(Obo::Stanza)
-#end
-
-#it 'can access IMS obo' do
-#Mspire::Obo::IMS.id_to_name['IMS:1000004'].should == 'image'
-#Mspire::Obo::IMS.name_to_id['image'].should == 'IMS:1000004'
-#Mspire::Obo::IMS.id_to_element['IMS:1000004'].should be_a(Obo::Stanza)
-#end
-
-#it 'can access Unit obo' do
-#Mspire::Obo::Unit.id_to_name['UO:0000005'].should == 'temperature unit'
-#Mspire::Obo::Unit.name_to_id['temperature unit'].should == 'UO:0000005'
-#Mspire::Obo::Unit.id_to_element['UO:0000005'].should be_a(Obo::Stanza)
-#end
-#end
-
-

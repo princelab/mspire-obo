@@ -5,6 +5,16 @@ require 'ext/obo'
 require 'andand'
 require 'yaml'
 
+module Enumerable
+  def index_by
+    if block_given?
+      Hash[map { |elem| [yield(elem), elem] }]
+    else
+      to_enum :index_by
+    end
+  end
+end
+
 module Mspire
   # This is the major class representing an ontology.  Because there are
   # multiple ways to access the information, and fast access requires building
@@ -19,13 +29,13 @@ module Mspire
       # returns an array of hashes with each hash describing the available
       # obos (those in the Mspire::Obo::DIR directory) with these keys:
       #
-      #     :full_name      # the generic name of the ontology
-      #     :url       # where the ontology may be downloaded
+      #     :full_name # the generic name of the ontology
+      #     :uri       # where the ontology may be downloaded
       #     :namespace # namespace (String)
       #     :path      # the expanded path filename
       #     :version   # the ontology version (String)
       #     :key       # access symbol [typically namespace.downcase.to_sym] (Symbol)
-      def available
+      def available(index_by=nil)
         obos = []
         Dir.chdir(Mspire::Obo::DIR) do
           Dir['*.*'].sort.each_slice(2) do |meta, obo|
@@ -36,7 +46,16 @@ module Mspire
             obos << hash
           end
         end
-        obos
+        if index_by
+          obos.index_by {|info| info[index_by] }
+        else
+          obos
+        end
+      end
+
+      # returns an array of Obo objects corresponding to all obos held
+      def all(load_file=true)
+        available(:key).keys.map {|key| self[key, load_file] }
       end
 
       # determines the version of the obo by just reading the header
@@ -48,7 +67,15 @@ module Mspire
       # directory using its :key.  The key is the downcased symbol of the
       # namespace and can effortlessly be determined with
       # Mspire::Obo.available().
-      def [](key)
+      def [](key, load_file=true)
+        lookup = available.index_by {|info| info[:key] }
+        info = lookup[key]
+        self.new(
+          load_file ? info[:path] : nil,
+          uri: info[:uri], 
+          full_name: info[:full_name], 
+          version: info[:version]
+        )
       end
     end
 

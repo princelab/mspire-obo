@@ -21,7 +21,8 @@ module Mspire
       end
 
       # merges all hashes into a new hash
-      def merge_hashes
+      def merge_hashes(hashes)
+      end
 
     end
   end

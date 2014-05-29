@@ -1,4 +1,5 @@
 require "bundler/gem_tasks"
+require 'tempfile'
 
 require 'rspec/core'
 require 'rspec/core/rake_task'
@@ -20,11 +21,22 @@ end
 
 desc "downloads the latest obo to appropriate spot"
 task 'update' do
-  require 'mspire/obo/all'
+  require 'mspire/obo'
   require 'open-uri'
-  Mspire::Mzml::ALL.each do |obo|
-    obo_fn = obo.basename
-    File.write(obo_fn, open(obo.uri, &:read).gsub(/\r\n?/, "\n"))
+  Mspire::Mzml.all(false).each do |obo|
+    begin
+      puts "working on #{File.basename(obo.uri)}"
+      tmpfile = Tempfile.new("test_temp")
+      tmpfile << open(obo.uri, &:read).gsub(/\r\n?/, "\n"))
+      tmpfile.close
+      if obo.version != Mspire::Obo.version(tmpfile)
+        File.rename(tmpfile.path, obo.path)  
+      end
+    ensure
+      if File.exist?(tmpfile.path)
+        tmpfile.close!
+      end
+    end
     puts "NOTE: if a file changed (git status), then update lib/mspire/obo/<OBO>.rb with correct version !!!"
   end
 end
