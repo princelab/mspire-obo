@@ -1,7 +1,5 @@
 require 'spec_helper'
-
 require 'mspire/obo'
-
 
 describe Mspire::Obo do 
 
@@ -19,6 +17,7 @@ describe Mspire::Obo do
     specify '#available returns an informative hash for each obo' do
       hashes = Mspire::Obo.available
       hashes.each {|hash| expect(hash.keys.sort).to eq [:full_name, :uri, :namespace, :path, :version, :key].sort }
+      expect( hashes.map {|hash| hash[:key] }.sort ).to eq [:mod, :ims, :ms, :pato, :unimod, :uo].sort
       ms_hash = hashes.find {|hash| hash[:namespace] == 'MS' }
       expect(ms_hash[:full_name].split(' ').first).to eq('Proteomics')
       expect(ms_hash[:uri]).to match(/psidev.*psi-ms.obo/)
