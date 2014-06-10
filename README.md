@@ -97,6 +97,8 @@ group.id_to_stanza["IMS:1001207"] => an Obo::Stanza object
 ```ruby
 obo = Mspire::Obo.new("somefile.obo")
 ```
+(although you might need to set some meta-information yourself depending on
+how you use the object)
 
 ### License
 
