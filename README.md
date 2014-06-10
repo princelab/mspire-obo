@@ -35,9 +35,9 @@ Mspire::Obo.available  # =>
 Keywords (downcased symbol of the namespace) are used to easily load an ontology.
 
 ```ruby
-ontologies_by_key = Mspire::Obo.available(:key)  # => index the available obos by their key
+ontologies_by_key = Mspire::Obo.available(:key)  # => index the available obos by key
 
-ms_obo = Mspire::Obo[:ms] # the Proteomics Standards Initiative Mass Spectrometry Ontology
+ms_obo = Mspire::Obo[:ms] # Proteomics Standards Initiative Mass Spectrometry Ontology
 ```
 
 #### Access ontology information
